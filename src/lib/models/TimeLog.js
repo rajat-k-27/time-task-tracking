@@ -29,7 +29,7 @@ export class TimeLog {
 	}
 
 	/**
-	 * Find active timer for a user
+	 * Find active timer for a user (returns first active timer)
 	 * @param {string} userId
 	 * @returns {Promise<Object|null>}
 	 */
@@ -39,6 +39,22 @@ export class TimeLog {
 			userId: new ObjectId(userId),
 			endTime: null
 		});
+	}
+
+	/**
+	 * Find all active timers for a user
+	 * @param {string} userId
+	 * @returns {Promise<Array>}
+	 */
+	static async findAllActiveTimers(userId) {
+		const db = await getDb();
+		return await db
+			.collection('timelogs')
+			.find({
+				userId: new ObjectId(userId),
+				endTime: null
+			})
+			.toArray();
 	}
 
 	/**

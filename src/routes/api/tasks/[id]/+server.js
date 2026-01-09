@@ -76,11 +76,6 @@ export async function DELETE({ request, params }) {
 			return json({ error: 'Task not found' }, { status: 404 });
 		}
 
-		// Prevent deleting completed tasks
-		if (task.status === 'Completed') {
-			return json({ error: 'Cannot delete completed tasks' }, { status: 400 });
-		}
-
 		await Task.delete(params.id, user.userId);
 		return json({ message: 'Task deleted successfully' });
 	} catch (error) {

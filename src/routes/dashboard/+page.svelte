@@ -3,21 +3,23 @@
 
 	let tasks = [];
 	let newTaskTitle = '';
+	let newTaskDescription = '';
 	let loading = false;
 	let error = '';
-	let activeTimer = null;
-	let timerDisplay = '00:00:00';
+	let activeTimers = {}; // Map of taskId -> timer info
+	let taskTimerDisplays = {}; // Map of taskId -> display string
+	let taskTimeLogs = {}; // Map of taskId -> array of time logs
+	let taskTotalTimes = {}; // Map of taskId -> total time in seconds
+	let expandedTasks = {}; // Map of taskId -> boolean for showing time logs
 	let timerInterval;
 
 	onMount(async () => {
 		await loadTasks();
-		await checkActiveTimer();
+		await checkActiveTimers();
 
-		// Update timer display every second
+		// Update timer displays every second
 		timerInterval = setInterval(() => {
-			if (activeTimer) {
-				updateTimerDisplay();
-			}
+			updateAllTimerDisplays();
 		}, 1000);
 
 		return () => clearInterval(timerInterval);
@@ -29,6 +31,10 @@
 			if (response.ok) {
 				const data = await response.json();
 				tasks = data.tasks;
+				// Load time logs for all tasks
+				for (const task of tasks) {
+					await loadTaskTimeLogs(task._id);
+				}
 			} else if (response.status === 401) {
 				window.location.href = '/';
 			}
@@ -37,33 +43,56 @@
 		}
 	}
 
-	async function checkActiveTimer() {
+	async function loadTaskTimeLogs(taskId) {
+		try {
+			const response = await fetch(`/api/timelogs/${taskId}`);
+			if (response.ok) {
+				const data = await response.json();
+				taskTimeLogs[taskId] = data.timeLogs || [];
+				taskTotalTimes[taskId] = data.totalTime || 0;
+			}
+		} catch (err) {
+			console.error('Error loading time logs:', err);
+		}
+	}
+
+	async function checkActiveTimers() {
 		try {
 			const response = await fetch('/api/timer/active');
 			if (response.ok) {
 				const data = await response.json();
-				activeTimer = data.activeTimer;
-				if (activeTimer) {
-					updateTimerDisplay();
+				// Convert array to map by taskId
+				activeTimers = {};
+				if (data.activeTimers) {
+					for (const timer of data.activeTimers) {
+						activeTimers[timer.taskId.toString()] = timer;
+					}
 				}
+				updateAllTimerDisplays();
 			}
 		} catch (err) {
-			console.error('Error checking timer:', err);
+			console.error('Error checking timers:', err);
 		}
 	}
 
-	function updateTimerDisplay() {
-		if (!activeTimer) return;
+	function updateAllTimerDisplays() {
+		const newDisplays = {};
+		for (const [taskId, timer] of Object.entries(activeTimers)) {
+			newDisplays[taskId] = formatTimerDisplay(timer.startTime);
+		}
+		taskTimerDisplays = newDisplays;
+	}
 
-		const startTime = new Date(activeTimer.startTime);
+	function formatTimerDisplay(startTime) {
+		const start = new Date(startTime);
 		const now = new Date();
-		const diff = Math.floor((now - startTime) / 1000); // seconds
+		const diff = Math.floor((now - start) / 1000);
 
 		const hours = Math.floor(diff / 3600);
 		const minutes = Math.floor((diff % 3600) / 60);
 		const seconds = diff % 60;
 
-		timerDisplay = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+		return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 	}
 
 	async function createTask() {
@@ -76,11 +105,15 @@
 			const response = await fetch('/api/tasks', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ title: newTaskTitle, description: '' })
+				body: JSON.stringify({ 
+					title: newTaskTitle, 
+					description: newTaskDescription 
+				})
 			});
 
 			if (response.ok) {
 				newTaskTitle = '';
+				newTaskDescription = '';
 				await loadTasks();
 			} else {
 				const data = await response.json();
@@ -102,7 +135,7 @@
 			});
 
 			if (response.ok) {
-				await checkActiveTimer();
+				await checkActiveTimers();
 				await loadTasks();
 			} else {
 				const data = await response.json();
@@ -113,15 +146,19 @@
 		}
 	}
 
-	async function stopTimer() {
+	async function stopTimer(taskId) {
 		try {
 			const response = await fetch('/api/timer/stop', {
-				method: 'POST'
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ taskId })
 			});
 
 			if (response.ok) {
-				activeTimer = null;
-				timerDisplay = '00:00:00';
+				delete activeTimers[taskId];
+				activeTimers = activeTimers; // trigger reactivity
+				delete taskTimerDisplays[taskId];
+				taskTimerDisplays = taskTimerDisplays;
 				await loadTasks();
 			}
 		} catch (err) {
@@ -172,12 +209,45 @@
 
 	function getTaskClass(task) {
 		if (task.status === 'Completed') return 'task-completed';
-		if (activeTimer && activeTimer.taskId.toString() === task._id.toString()) return 'task-active';
+		if (isTaskActive(task)) return 'task-active';
 		return '';
 	}
 
 	function isTaskActive(task) {
-		return activeTimer && activeTimer.taskId.toString() === task._id.toString();
+		return activeTimers[task._id.toString()] !== undefined;
+	}
+
+	function getActiveTimerCount() {
+		return Object.keys(activeTimers).length;
+	}
+
+	function formatTime(seconds) {
+		const hours = Math.floor(seconds / 3600);
+		const minutes = Math.floor((seconds % 3600) / 60);
+		const secs = seconds % 60;
+		return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+	}
+
+	function formatDateTime(dateString) {
+		const date = new Date(dateString);
+		return date.toLocaleString();
+	}
+
+	function toggleTaskLogs(taskId) {
+		expandedTasks[taskId] = !expandedTasks[taskId];
+		expandedTasks = expandedTasks; // trigger reactivity
+	}
+
+	function getTotalTimeWithActive(taskId) {
+		let total = taskTotalTimes[taskId] || 0;
+		// Add active timer time if running
+		if (activeTimers[taskId]) {
+			const start = new Date(activeTimers[taskId].startTime);
+			const now = new Date();
+			const activeSeconds = Math.floor((now - start) / 1000);
+			total += activeSeconds;
+		}
+		return total;
 	}
 </script>
 
@@ -189,20 +259,13 @@
 	<header class="header">
 		<h1>⏱️ Time Tracker</h1>
 		<div class="header-actions">
+			{#if getActiveTimerCount() > 0}
+				<span class="active-count">{getActiveTimerCount()} timer{getActiveTimerCount() > 1 ? 's' : ''} running</span>
+			{/if}
 			<a href="/summary" class="btn-link">Summary</a>
 			<button on:click={logout} class="btn-logout">Logout</button>
 		</div>
 	</header>
-
-	{#if activeTimer}
-		<div class="active-timer">
-			<div class="timer-info">
-				<span class="timer-label">Timer Running</span>
-				<span class="timer-time">{timerDisplay}</span>
-			</div>
-			<button on:click={stopTimer} class="btn-stop">Stop Timer</button>
-		</div>
-	{/if}
 
 	<main class="main">
 		<div class="tasks-container">
@@ -216,24 +279,67 @@
 						<div class="task-card {getTaskClass(task)}">
 							<div class="task-header">
 								<h3 class="task-title">{task.title}</h3>
-								<span class="task-status status-{task.status.toLowerCase().replace(' ', '-')}">
-									{task.status}
-								</span>
+								<div class="task-header-right">
+									{#if isTaskActive(task)}
+										<span class="task-timer">{taskTimerDisplays[task._id.toString()] || '00:00:00'}</span>
+									{/if}
+									<span class="task-status status-{task.status.toLowerCase().replace(' ', '-')}">
+										{task.status}
+									</span>
+								</div>
 							</div>
 
 							{#if task.description}
 								<p class="task-description">{task.description}</p>
 							{/if}
 
+							<div class="task-stats">
+								<span class="total-time">
+									⏱ Total: {formatTime(getTotalTimeWithActive(task._id.toString()))}
+								</span>
+								{#if taskTimeLogs[task._id.toString()] && taskTimeLogs[task._id.toString()].length > 0}
+									<button 
+										on:click={() => toggleTaskLogs(task._id.toString())} 
+										class="btn-logs"
+									>
+										{expandedTasks[task._id.toString()] ? '▼' : '▶'} 
+										{taskTimeLogs[task._id.toString()].length} session{taskTimeLogs[task._id.toString()].length > 1 ? 's' : ''}
+									</button>
+								{/if}
+							</div>
+
+							{#if expandedTasks[task._id.toString()] && taskTimeLogs[task._id.toString()]}
+								<div class="time-logs">
+									<table class="logs-table">
+										<thead>
+											<tr>
+												<th>Start</th>
+												<th>End</th>
+												<th>Duration</th>
+											</tr>
+										</thead>
+										<tbody>
+											{#each taskTimeLogs[task._id.toString()] as log}
+												<tr>
+													<td>{formatDateTime(log.startTime)}</td>
+													<td>{log.endTime ? formatDateTime(log.endTime) : 'Active'}</td>
+													<td>{log.endTime ? formatTime(log.duration) : 'Running...'}</td>
+												</tr>
+											{/each}
+										</tbody>
+									</table>
+								</div>
+							{/if}
+
 							<div class="task-actions">
 								{#if task.status !== 'Completed'}
 									{#if isTaskActive(task)}
-										<button on:click={stopTimer} class="btn-action btn-stop-small">
-											Stop Timer
+										<button on:click={() => stopTimer(task._id)} class="btn-action btn-stop-small">
+											⏹ Stop Timer
 										</button>
 									{:else}
 										<button on:click={() => startTimer(task._id)} class="btn-action btn-start">
-											Start Timer
+											▶ Start Timer
 										</button>
 									{/if}
 
@@ -241,17 +347,29 @@
 										value={task.status}
 										on:change={(e) => updateTaskStatus(task._id, e.target.value)}
 										class="status-select"
+										disabled={isTaskActive(task)}
+										title={isTaskActive(task) ? 'Stop timer to change status' : ''}
 									>
 										<option value="Pending">Pending</option>
 										<option value="In Progress">In Progress</option>
 										<option value="Completed">Completed</option>
 									</select>
 
-									<button on:click={() => deleteTask(task._id)} class="btn-action btn-delete">
+									<button 
+										on:click={() => deleteTask(task._id)} 
+										class="btn-action btn-delete"
+										disabled={isTaskActive(task)}
+										title={isTaskActive(task) ? 'Stop timer to delete task' : ''}
+									>
 										Delete
 									</button>
 								{:else}
-									<span class="completed-label">✓ Task Completed</span>
+									<div class="task-actions">
+										<span class="completed-label">✓ Task Completed</span>
+										<button on:click={() => deleteTask(task._id)} class="btn-action btn-delete">
+											Delete
+										</button>
+									</div>
 								{/if}
 							</div>
 						</div>
@@ -259,26 +377,35 @@
 				{/if}
 			</div>
 		</div>
+	</main>
 
-		<div class="input-container">
-			{#if error}
-				<div class="error-message">{error}</div>
-			{/if}
+	<div class="input-container">
+		{#if error}
+			<div class="error-message">{error}</div>
+		{/if}
 
-			<form on:submit|preventDefault={createTask} class="task-input-form">
+		<form on:submit|preventDefault={createTask} class="task-input-form">
+			<div class="input-fields">
 				<input
 					type="text"
 					bind:value={newTaskTitle}
-					placeholder="What are you working on?"
+					placeholder="Task title - What are you working on?"
 					class="task-input"
 					disabled={loading}
 				/>
-				<button type="submit" class="btn-submit" disabled={loading || !newTaskTitle.trim()}>
-					{loading ? 'Adding...' : 'Add Task'}
-				</button>
-			</form>
-		</div>
-	</main>
+				<input
+					type="text"
+					bind:value={newTaskDescription}
+					placeholder="Description (optional)"
+					class="task-input task-description-input"
+					disabled={loading}
+				/>
+			</div>
+			<button type="submit" class="btn-submit" disabled={loading || !newTaskTitle.trim()}>
+				{loading ? 'Adding...' : 'Add Task'}
+			</button>
+		</form>
+	</div>
 </div>
 
 <style>
@@ -296,6 +423,9 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
+		position: sticky;
+		top: 0;
+		z-index: 10;
 	}
 
 	.header h1 {
@@ -307,6 +437,21 @@
 		display: flex;
 		gap: 1rem;
 		align-items: center;
+	}
+
+	.active-count {
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		color: white;
+		padding: 0.5rem 1rem;
+		border-radius: 20px;
+		font-weight: 600;
+		font-size: 0.875rem;
+		animation: pulse 2s infinite;
+	}
+
+	@keyframes pulse {
+		0%, 100% { opacity: 1; }
+		50% { opacity: 0.8; }
 	}
 
 	.btn-link {
@@ -337,47 +482,6 @@
 		background: #f56565;
 	}
 
-	.active-timer {
-		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-		color: white;
-		padding: 1.5rem 2rem;
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-	}
-
-	.timer-info {
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-	}
-
-	.timer-label {
-		font-size: 0.875rem;
-		opacity: 0.9;
-	}
-
-	.timer-time {
-		font-size: 2rem;
-		font-weight: 700;
-		font-variant-numeric: tabular-nums;
-	}
-
-	.btn-stop {
-		padding: 0.75rem 1.5rem;
-		background: white;
-		color: #667eea;
-		border: none;
-		border-radius: 6px;
-		font-weight: 700;
-		cursor: pointer;
-		transition: transform 0.2s;
-	}
-
-	.btn-stop:hover {
-		transform: scale(1.05);
-	}
-
 	.main {
 		flex: 1;
 		display: flex;
@@ -386,12 +490,12 @@
 		width: 100%;
 		margin: 0 auto;
 		padding: 2rem;
+		padding-bottom: 180px; /* Space for sticky input */
+		overflow-y: auto;
 	}
 
 	.tasks-container {
 		flex: 1;
-		overflow-y: auto;
-		margin-bottom: 2rem;
 	}
 
 	.tasks-container h2 {
@@ -426,6 +530,7 @@
 
 	.task-active {
 		border-left: 4px solid #667eea;
+		background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
 	}
 
 	.task-completed {
@@ -438,6 +543,24 @@
 		justify-content: space-between;
 		align-items: start;
 		margin-bottom: 0.75rem;
+		gap: 1rem;
+	}
+
+	.task-header-right {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.task-timer {
+		font-family: 'Courier New', monospace;
+		font-size: 1.1rem;
+		font-weight: 700;
+		color: #667eea;
+		background: rgba(102, 126, 234, 0.1);
+		padding: 0.25rem 0.75rem;
+		border-radius: 6px;
+		font-variant-numeric: tabular-nums;
 	}
 
 	.task-title {
@@ -477,6 +600,74 @@
 		font-size: 0.9rem;
 	}
 
+	.task-stats {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		margin-bottom: 0.75rem;
+		padding: 0.5rem;
+		background: #f7fafc;
+		border-radius: 6px;
+	}
+
+	.total-time {
+		font-weight: 600;
+		color: #2d3748;
+		font-size: 0.9rem;
+	}
+
+	.btn-logs {
+		background: transparent;
+		border: none;
+		color: #667eea;
+		font-weight: 600;
+		cursor: pointer;
+		font-size: 0.85rem;
+		padding: 0.25rem 0.5rem;
+		border-radius: 4px;
+		transition: background 0.2s;
+	}
+
+	.btn-logs:hover {
+		background: rgba(102, 126, 234, 0.1);
+	}
+
+	.time-logs {
+		margin-bottom: 0.75rem;
+		background: #f7fafc;
+		border-radius: 6px;
+		padding: 0.75rem;
+		overflow-x: auto;
+	}
+
+	.logs-table {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 0.85rem;
+	}
+
+	.logs-table th {
+		text-align: left;
+		padding: 0.5rem;
+		border-bottom: 2px solid #e2e8f0;
+		color: #4a5568;
+		font-weight: 600;
+	}
+
+	.logs-table td {
+		padding: 0.5rem;
+		border-bottom: 1px solid #e2e8f0;
+		color: #2d3748;
+	}
+
+	.logs-table tbody tr:last-child td {
+		border-bottom: none;
+	}
+
+	.logs-table tbody tr:hover {
+		background: rgba(102, 126, 234, 0.05);
+	}
+
 	.task-actions {
 		display: flex;
 		gap: 0.5rem;
@@ -513,12 +704,23 @@
 		color: #2d3748;
 	}
 
+	.btn-delete:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+
 	.status-select {
 		padding: 0.5rem;
 		border: 1px solid #e2e8f0;
 		border-radius: 6px;
 		font-size: 0.85rem;
 		cursor: pointer;
+	}
+
+	.status-select:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+		background: #f7fafc;
 	}
 
 	.completed-label {
@@ -528,19 +730,33 @@
 	}
 
 	.input-container {
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		right: 0;
 		background: white;
 		padding: 1.5rem;
-		border-radius: 8px;
-		box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+		box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+		z-index: 100;
 	}
 
 	.task-input-form {
 		display: flex;
 		gap: 0.75rem;
+		max-width: 1200px;
+		margin: 0 auto;
+		align-items: flex-end;
+	}
+
+	.input-fields {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
 	}
 
 	.task-input {
-		flex: 1;
+		width: 100%;
 		padding: 0.875rem;
 		border: 2px solid #e2e8f0;
 		border-radius: 8px;
@@ -553,6 +769,11 @@
 		border-color: #667eea;
 	}
 
+	.task-description-input {
+		font-size: 0.9rem;
+		padding: 0.625rem 0.875rem;
+	}
+
 	.btn-submit {
 		padding: 0.875rem 1.5rem;
 		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -563,6 +784,7 @@
 		cursor: pointer;
 		transition: transform 0.2s;
 		white-space: nowrap;
+		height: fit-content;
 	}
 
 	.btn-submit:hover:not(:disabled) {
@@ -582,6 +804,9 @@
 		border-radius: 6px;
 		margin-bottom: 1rem;
 		font-size: 0.9rem;
+		max-width: 1200px;
+		margin-left: auto;
+		margin-right: auto;
 	}
 
 	@media (max-width: 768px) {
@@ -591,10 +816,11 @@
 
 		.main {
 			padding: 1rem;
+			padding-bottom: 220px;
 		}
 
-		.timer-time {
-			font-size: 1.5rem;
+		.input-container {
+			padding: 1rem;
 		}
 
 		.task-input-form {
@@ -603,6 +829,15 @@
 
 		.btn-submit {
 			width: 100%;
+		}
+
+		.task-header {
+			flex-direction: column;
+			gap: 0.5rem;
+		}
+
+		.task-header-right {
+			justify-content: flex-start;
 		}
 	}
 </style>

@@ -10,13 +10,9 @@ export async function GET({ request }) {
 			return json({ error: 'Unauthorized' }, { status: 401 });
 		}
 
-		const activeTimer = await TimeLog.findActiveTimer(user.userId);
+		const activeTimers = await TimeLog.findAllActiveTimers(user.userId);
 
-		if (!activeTimer) {
-			return json({ activeTimer: null });
-		}
-
-		return json({ activeTimer });
+		return json({ activeTimers: activeTimers || [] });
 	} catch (error) {
 		console.error('Get active timer error:', error);
 		return json({ error: 'Internal server error' }, { status: 500 });

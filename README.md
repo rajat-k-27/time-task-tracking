@@ -15,19 +15,23 @@ A full-stack task and time tracking application built with **SvelteKit** and **M
 - Protected routes and API endpoints
 
 ### ✅ **Task Management**
-- Create tasks with natural language input
+- Create tasks with title and description
 - View, edit, update, and delete tasks
 - Task status: Pending, In Progress, Completed
-- Completed tasks are frozen (no edit/delete)
+- Completed tasks can be deleted
 - User-specific task isolation
+- Chat-style sticky input at bottom
 
 ### ⏱️ **Real-Time Time Tracking**
-- Start/stop timer for each task
+- Start/stop timer for individual tasks
+- **Multiple timers can run simultaneously**
 - Timer updates in real-time (HH:MM:SS format)
 - Timer persists across page refreshes
-- Only one active timer at a time
+- **Status cannot be changed while timer is active**
 - Time log sessions stored in database
 - View total time per task
+- **View all time log sessions per task**
+- Expandable time logs with start/end times
 
 ### 📊 **Daily Summary**
 - Select any date to view summary
@@ -40,10 +44,12 @@ A full-stack task and time tracking application built with **SvelteKit** and **M
 - Clean, responsive design
 - Mobile-friendly interface
 - Dashboard with scrollable tasks
-- Compact input (chat-style at bottom)
-- Real-time timer display
-- Visual distinction for completed tasks
+- **Sticky input at bottom (chat-app style)**
+- Real-time timer display on each task
+- Visual distinction for active/completed tasks
 - Gradient backgrounds and smooth animations
+- **Active timer count in header**
+- **Expandable time logs per task**
 
 ## 🛠️ Tech Stack
 
@@ -172,23 +178,31 @@ time-tracking/
 ### 1. **Sign Up / Login**
 - Create an account or login with existing credentials
 - Minimum password length: 6 characters
-
-### 2. **Create Tasks**
-- Enter task title in the input at the bottom
-- Task is created with "Pending" status
+and optional description in the sticky input at bottom
+- Task is created with "Pending" status by default
 
 ### 3. **Start Timer**
-- Click "Start Timer" on any task
+- Click "▶ Start Timer" on any task
+- Multiple timers can run simultaneously for different tasks
 - Timer runs in real-time and persists on refresh
 - Task status automatically changes to "In Progress"
+- Status dropdown is disabled while timer is active
 
-### 4. **Manage Tasks**
-- Change status using dropdown
-- Delete tasks (only non-completed)
-- Complete tasks (they become frozen)
+### 4. **View Time Logs**
+- Click on "▶ X sessions" button to expand time logs
+- View all tracking sessions with start/end times and duration
+- See total time spent at a glance (including active time)
 
-### 5. **View Summary**
+### 5. **Manage Tasks**
+- Change status using dropdown (disabled during active timer)
+- Delete any task including completed ones
+- Complete tasks to mark them as done
+
+### 6. **View Summary**
 - Click "Summary" in header
+- Select date to view statistics
+- See all time logs and task breakdown
+- View Pending, In Progress, and Completed task counts
 - Select date to view statistics
 - See all time logs and task breakdown
 
@@ -238,7 +252,7 @@ Email: demo@example.com
 Password: demo123
 ```
 
-## 📝 Commit History
+## 📝 Commit History & Suggested Commits
 
 This project follows conventional commit messages:
 - `feat:` - New features
@@ -246,6 +260,44 @@ This project follows conventional commit messages:
 - `fix:` - Bug fixes
 - `docs:` - Documentation
 - `refactor:` - Code refactoring
+
+### Suggested commits for current implementation:
+
+```bash
+# Initial setup
+git add .
+git commit -m "feat: initial project setup with SvelteKit and MongoDB"
+
+# Authentication
+git commit -m "feat: add user authentication with JWT and bcrypt"
+
+# Task Management
+git commit -m "feat: add task CRUD operations"
+git commit -m "feat: add task description field"
+git commit -m "ui: add sticky bottom input like chat apps"
+
+# Timer Features
+git commit -m "feat: implement timer start/stop functionality"
+git commit -m "feat: enable multiple concurrent timers per task"
+git commit -m "feat: persist timer state across page refreshes"
+git commit -m "feat: disable status update during active timer"
+
+# Time Logs
+git commit -m "feat: add time log sessions for each task"
+git commit -m "feat: display total time per task with active timer"
+git commit -m "ui: add expandable time logs view per task"
+
+# Task Management Updates
+git commit -m "fix: allow deletion of completed tasks"
+git commit -m "feat: set default task status to Pending"
+
+# Summary Page
+git commit -m "feat: add daily summary page with statistics"
+git commit -m "feat: display pending tasks in summary breakdown"
+
+# Documentation
+git commit -m "docs: update README with all features"
+```
 
 Each feature was committed separately for clear project history.
 

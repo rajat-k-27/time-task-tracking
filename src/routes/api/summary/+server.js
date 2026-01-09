@@ -26,12 +26,18 @@ export async function GET({ request, url }) {
 		// Get time logs for the day
 		const timeLogs = await TimeLog.findByDateRange(user.userId, startOfDay, endOfDay);
 
-		// Get unique task IDs
-		const taskIds = [...new Set(timeLogs.map((log) => log.taskId.toString()))];
+		// Get unique task IDs from time logs
+		const taskIdsFromLogs = [...new Set(timeLogs.map((log) => log.taskId.toString()))];
 
-		// Get tasks
-		const tasks = await Task.findByUserId(user.userId);
-		const tasksWorkedOn = tasks.filter((task) => taskIds.includes(task._id.toString()));
+		// Get all user tasks
+		const allTasks = await Task.findByUserId(user.userId);
+		
+		// Get tasks worked on (with time logs) + tasks created today
+		const tasksWorkedOn = allTasks.filter((task) => {
+			const taskCreatedToday = new Date(task.createdAt) >= startOfDay && new Date(task.createdAt) <= endOfDay;
+			const hasTimeLogs = taskIdsFromLogs.includes(task._id.toString());
+			return hasTimeLogs || taskCreatedToday;
+		});
 
 		// Calculate total time
 		const totalTime = timeLogs

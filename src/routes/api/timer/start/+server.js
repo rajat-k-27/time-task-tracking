@@ -24,10 +24,10 @@ export async function POST({ request }) {
 			return json({ error: 'Cannot start timer for completed tasks' }, { status: 400 });
 		}
 
-		// Check if there's already an active timer
-		const activeTimer = await TimeLog.findActiveTimer(user.userId);
-		if (activeTimer) {
-			return json({ error: 'Stop the current timer before starting a new one' }, { status: 400 });
+		// Check if this task already has an active timer
+		const existingTimer = await TimeLog.findActiveTimerForTask(user.userId, taskId);
+		if (existingTimer) {
+			return json({ error: 'This task already has an active timer' }, { status: 400 });
 		}
 
 		// Create new time log

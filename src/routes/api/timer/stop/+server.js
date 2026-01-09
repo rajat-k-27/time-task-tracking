@@ -10,8 +10,17 @@ export async function POST({ request }) {
 			return json({ error: 'Unauthorized' }, { status: 401 });
 		}
 
-		// Find active timer
-		const activeTimer = await TimeLog.findActiveTimer(user.userId);
+		const body = await request.json().catch(() => ({}));
+		const { taskId } = body;
+
+		// Find active timer - for specific task if provided, otherwise any active timer
+		let activeTimer;
+		if (taskId) {
+			activeTimer = await TimeLog.findActiveTimerForTask(user.userId, taskId);
+		} else {
+			activeTimer = await TimeLog.findActiveTimer(user.userId);
+		}
+		
 		if (!activeTimer) {
 			return json({ error: 'No active timer found' }, { status: 404 });
 		}
