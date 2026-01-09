@@ -120,7 +120,7 @@ Demo Video : https://drive.google.com/file/d/1na9wkkXq1TjW2ynXNsq0zKJCER6x65yu/v
 
 ```bash
 # Clone the repository
-git clone <your-repo-url>
+git clone https://github.com/rajat-k-27/time-task-tracking
 cd time-tracking
 
 # Install dependencies
