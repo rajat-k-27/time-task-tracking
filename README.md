@@ -8,9 +8,9 @@ A full-stack task and time tracking application built with **SvelteKit** and **M
 
 **Tech Stack:** SvelteKit • MongoDB • JWT Authentication • bcryptjs • Custom CSS
 
-## 🚀 Live Demo
+## **🚀 Live App Link:** https://time-task-tracking.vercel.app/
 
-**🔗 Deployed App:** [https://your-app.vercel.app](https://your-app.vercel.app)
+**🔗 Deployed App:** https://time-task-tracking.vercel.app/
 
 > Replace with your actual deployment URL after deploying to Vercel, Netlify, or Railway
 
@@ -26,6 +26,15 @@ A full-stack task and time tracking application built with **SvelteKit** and **M
 ## � Demo Video
 
 Demo Video : https://drive.google.com/file/d/1na9wkkXq1TjW2ynXNsq0zKJCER6x65yu/view?usp=drive_link
+
+
+## 🧪 Test Credentials (Optional)
+After deployment, you can provide test credentials in your README:
+
+```
+Email: test@gmail.com
+Password: test1234
+```
 
 
 ## 🛠️ Tech Stack
@@ -331,13 +340,7 @@ npm run build
 - `MONGODB_URI`
 - `JWT_SECRET`
 
-## 🧪 Test Credentials (Optional)
-After deployment, you can provide test credentials in your README:
 
-```
-Email: test@gmail.com
-Password: test1234
-```
 
 ## 🤝 Contributing
 
@@ -357,6 +360,6 @@ Built as a demonstration of full-stack SvelteKit development with MongoDB.
 
 ---
 
-**Live Demo:** [Add your deployment URL here]
+**Live Demo:** https://time-task-tracking.vercel.app/
 
 **Note:** Remember to update MongoDB URI and JWT secret for production use!
