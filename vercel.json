@@ -1,0 +1,12 @@
+{
+	"functions": {
+		"src/routes/api/**/*.js": {
+			"maxDuration": 10
+		}
+	},
+	"regions": ["iad1"],
+	"env": {
+		"MONGODB_URI": "@mongodb_uri",
+		"JWT_SECRET": "@jwt_secret"
+	}
+}
