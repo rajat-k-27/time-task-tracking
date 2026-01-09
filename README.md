@@ -25,7 +25,7 @@ A full-stack task and time tracking application built with **SvelteKit** and **M
 
 ## � Demo Video
 
-![Demo Video](https://drive.google.com/file/d/1na9wkkXq1TjW2ynXNsq0zKJCER6x65yu/view?usp=drive_link)
+Demo Video : https://drive.google.com/file/d/1na9wkkXq1TjW2ynXNsq0zKJCER6x65yu/view?usp=drive_link
 
 
 ## 🛠️ Tech Stack
@@ -144,7 +144,7 @@ npm run dev
 
 ### 1. Clone the Repository
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/rajat-k-27/time-task-tracking
 cd time-tracking
 ```
 
