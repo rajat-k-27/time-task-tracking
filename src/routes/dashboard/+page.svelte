@@ -13,13 +13,18 @@
 	let expandedTasks = {}; // Map of taskId -> boolean for showing time logs
 	let timerInterval;
 
+	// Reactive statement to ensure UI updates when activeTimers changes
+	$: activeTimerCount = Object.keys(activeTimers).length;
+
 	onMount(async () => {
 		await loadTasks();
 		await checkActiveTimers();
 
 		// Update timer displays every second
 		timerInterval = setInterval(() => {
-			updateAllTimerDisplays();
+			if (Object.keys(activeTimers).length > 0) {
+				updateAllTimerDisplays();
+			}
 		}, 1000);
 
 		return () => clearInterval(timerInterval);
@@ -62,13 +67,18 @@
 			if (response.ok) {
 				const data = await response.json();
 				// Convert array to map by taskId
-				activeTimers = {};
-				if (data.activeTimers) {
+				const newActiveTimers = {};
+				if (data.activeTimers && data.activeTimers.length > 0) {
 					for (const timer of data.activeTimers) {
-						activeTimers[timer.taskId.toString()] = timer;
+						newActiveTimers[timer.taskId.toString()] = timer;
 					}
 				}
+				// Force reactivity by reassigning
+				activeTimers = { ...newActiveTimers };
+				// Immediately update displays after loading
 				updateAllTimerDisplays();
+				// Force UI update
+				tasks = [...tasks];
 			}
 		} catch (err) {
 			console.error('Error checking timers:', err);
@@ -80,7 +90,8 @@
 		for (const [taskId, timer] of Object.entries(activeTimers)) {
 			newDisplays[taskId] = formatTimerDisplay(timer.startTime);
 		}
-		taskTimerDisplays = newDisplays;
+		// Force reactivity by creating new object
+		taskTimerDisplays = { ...newDisplays };
 	}
 
 	function formatTimerDisplay(startTime) {
@@ -155,10 +166,15 @@
 			});
 
 			if (response.ok) {
-				delete activeTimers[taskId];
-				activeTimers = activeTimers; // trigger reactivity
-				delete taskTimerDisplays[taskId];
-				taskTimerDisplays = taskTimerDisplays;
+				// Create new objects to force reactivity
+				const newActiveTimers = { ...activeTimers };
+				delete newActiveTimers[taskId];
+				activeTimers = newActiveTimers;
+				
+				const newDisplays = { ...taskTimerDisplays };
+				delete newDisplays[taskId];
+				taskTimerDisplays = newDisplays;
+				
 				await loadTasks();
 			}
 		} catch (err) {
@@ -259,8 +275,8 @@
 	<header class="header">
 		<h1>⏱️ Time Tracker</h1>
 		<div class="header-actions">
-			{#if getActiveTimerCount() > 0}
-				<span class="active-count">{getActiveTimerCount()} timer{getActiveTimerCount() > 1 ? 's' : ''} running</span>
+			{#if activeTimerCount > 0}
+				<span class="active-count">{activeTimerCount} timer{activeTimerCount > 1 ? 's' : ''} running</span>
 			{/if}
 			<a href="/summary" class="btn-link">Summary</a>
 			<button on:click={logout} class="btn-logout">Logout</button>
