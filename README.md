@@ -6,50 +6,27 @@ A full-stack task and time tracking application built with **SvelteKit** and **M
 ![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
 ![JWT](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)
 
-## 🌟 Features
+**Tech Stack:** SvelteKit • MongoDB • JWT Authentication • bcryptjs • Custom CSS
 
-### 🔐 **Authentication**
-- Secure user signup and login
-- JWT-based authentication with httpOnly cookies
-- Password hashing with bcryptjs
-- Protected routes and API endpoints
+## 🚀 Live Demo
 
-### ✅ **Task Management**
-- Create tasks with title and description
-- View, edit, update, and delete tasks
-- Task status: Pending, In Progress, Completed
-- Completed tasks can be deleted
-- User-specific task isolation
-- Chat-style sticky input at bottom
+**🔗 Deployed App:** [https://your-app.vercel.app](https://your-app.vercel.app)
 
-### ⏱️ **Real-Time Time Tracking**
-- Start/stop timer for individual tasks
-- **Multiple timers can run simultaneously**
-- Timer updates in real-time (HH:MM:SS format)
-- Timer persists across page refreshes
-- **Status cannot be changed while timer is active**
-- Time log sessions stored in database
-- View total time per task
-- **View all time log sessions per task**
-- Expandable time logs with start/end times
+> Replace with your actual deployment URL after deploying to Vercel, Netlify, or Railway
 
-### 📊 **Daily Summary**
-- Select any date to view summary
-- Total time tracked for the day
-- Tasks worked on with status breakdown
-- Complete time log history
-- Visual statistics (Completed/In Progress/Pending)
+## 📸 Screenshots
 
-### 🎨 **Modern UI/UX**
-- Clean, responsive design
-- Mobile-friendly interface
-- Dashboard with scrollable tasks
-- **Sticky input at bottom (chat-app style)**
-- Real-time timer display on each task
-- Visual distinction for active/completed tasks
-- Gradient backgrounds and smooth animations
-- **Active timer count in header**
-- **Expandable time logs per task**
+![Auth page](<Screenshot 2026-01-09 215051.jpg>)
+![Task page](<Screenshot 2026-01-09 215316.jpg>)
+![Task timer](<Screenshot 2026-01-09 215338.jpg>)
+![Summary Page](<Screenshot 2026-01-09 215452.jpg>)
+![Time Logs](<Screenshot 2026-01-09 215508.jpg>)
+
+
+## � Demo Video
+
+![Demo Video](https://drive.google.com/file/d/1na9wkkXq1TjW2ynXNsq0zKJCER6x65yu/view?usp=drive_link)
+
 
 ## 🛠️ Tech Stack
 
@@ -67,7 +44,98 @@ A full-stack task and time tracking application built with **SvelteKit** and **M
 **Deployment Ready:**
 - Vercel / Netlify / Railway compatible
 
-## 📦 Installation & Setup
+
+## �🌟 Features
+
+### 🔐 **Authentication**
+- Secure user signup and login
+- JWT-based authentication with httpOnly cookies
+- Password hashing with bcryptjs
+- Protected routes and API endpoints
+
+### ✅ **Task Management**
+- Create tasks with title and description
+- View, edit, update, and delete tasks
+- Task status: Pending, In Progress, Completed
+- Completed tasks can be deleted
+- User-specific task isolation
+- Chat-style sticky input at bottom
+
+### ⏱️ **Real-Time Time Tracking**
+- Start/stop timer for individual tasks
+- **Multiple timers can run simultaneously** for different tasks
+- Timer updates in real-time every second (HH:MM:SS format)
+- **Timer persists across page refreshes, browser tabs, and navigation**
+- **Status and delete buttons disabled while timer is active**
+- Time log sessions stored in database
+- View total time per task (including active timer time)
+- **View all time log sessions per task**
+- Expandable time logs with start/end times and duration
+- **Timer state fully synchronized between database and UI**
+
+### 📊 **Daily Summary**
+- Select any date to view summary
+- Total time tracked for the day
+- **Shows all tasks created on selected date** (even without time logs)
+- **Pending tasks properly displayed in summary**
+- Complete time log history with sessions
+- Visual statistics (Completed/In Progress/Pending)
+- Time breakdown by task status
+
+### 🎨 **Modern UI/UX**
+- Clean, responsive design
+- Mobile-friendly interface
+- Dashboard with scrollable tasks
+- **Sticky input at bottom (chat-app style)**
+- **Individual timer display on each active task**
+- Visual distinction for active/completed tasks
+- Gradient backgrounds and smooth animations
+- **Active timer count badge in header**
+- **Expandable time logs per task**
+- **Real-time UI updates with proper Svelte reactivity**
+
+## ✨ Key Technical Highlights
+
+### Timer Persistence Implementation
+- **Database-driven state**: Timer state stored in MongoDB with `endTime: null` for active timers
+- **Automatic recovery**: On page load, active timers are fetched and restored
+- **Real-time sync**: Timer displays update every second using `setInterval`
+- **Svelte reactivity**: Proper object reassignment ensures UI updates trigger correctly
+- **Multiple timers**: Each task can have its own independent timer running simultaneously
+
+### UI/UX Optimizations
+- **Sticky input**: Bottom-fixed input container like modern chat apps (WhatsApp, Slack)
+- **Reactive badges**: Timer count badge updates automatically via Svelte `$:` syntax
+- **Conditional controls**: Status/delete buttons intelligently disable during active timers
+- **Visual feedback**: Active tasks highlighted with gradient backgrounds and timer displays
+
+### Data Architecture
+- **Session-based tracking**: Each timer start/stop creates a time log entry
+- **Cumulative totals**: Total time calculated from all completed sessions + active timer
+- **User isolation**: All data scoped to authenticated user via JWT
+- **Date-based summaries**: Efficient MongoDB queries for daily statistics
+
+
+## � Quick Start
+
+```bash
+# Clone the repository
+git clone <your-repo-url>
+cd time-tracking
+
+# Install dependencies
+npm install
+
+# Set up environment variables
+# Create .env file with MONGODB_URI and JWT_SECRET
+
+# Run development server
+npm run dev
+
+# Visit http://localhost:5173
+```
+
+## 📦 Installation & Setup (Detailed)
 
 ### Prerequisites
 - Node.js (v18 or higher)
@@ -111,6 +179,23 @@ Visit `http://localhost:5173`
 npm run build
 npm run preview
 ```
+
+## 🌐 Deployment
+
+### Deploy to Vercel (Recommended)
+
+1. **Push your code to GitHub**
+
+2. **Visit [Vercel](https://vercel.com)** and sign in
+
+3. **Import your repository**
+
+4. **Configure environment variables:**
+   - Add `MONGODB_URI` (your MongoDB Atlas connection string)
+   - Add `JWT_SECRET` (generate a secure random string)
+
+5. **Deploy!** Vercel will automatically build and deploy your app
+
 
 ## 📁 Project Structure
 
@@ -166,8 +251,8 @@ time-tracking/
 
 ### Timer
 - `POST /api/timer/start` - Start timer for task
-- `POST /api/timer/stop` - Stop active timer
-- `GET /api/timer/active` - Get active timer
+- `POST /api/timer/stop` - Stop active timer (accepts taskId)
+- `GET /api/timer/active` - Get all active timers
 
 ### Time Logs & Summary
 - `GET /api/timelogs/:taskId` - Get time logs for task
@@ -178,15 +263,17 @@ time-tracking/
 ### 1. **Sign Up / Login**
 - Create an account or login with existing credentials
 - Minimum password length: 6 characters
-and optional description in the sticky input at bottom
+
+### 2. **Create Tasks**
+- Enter task title and optional description in the sticky input at bottom
 - Task is created with "Pending" status by default
 
 ### 3. **Start Timer**
 - Click "▶ Start Timer" on any task
 - Multiple timers can run simultaneously for different tasks
-- Timer runs in real-time and persists on refresh
+- Timer runs in real-time and **persists across page refreshes**
 - Task status automatically changes to "In Progress"
-- Status dropdown is disabled while timer is active
+- **Status dropdown and delete button are disabled while timer is active**
 
 ### 4. **View Time Logs**
 - Click on "▶ X sessions" button to expand time logs
@@ -194,17 +281,17 @@ and optional description in the sticky input at bottom
 - See total time spent at a glance (including active time)
 
 ### 5. **Manage Tasks**
-- Change status using dropdown (disabled during active timer)
-- Delete any task including completed ones
+- Change status using dropdown **(disabled during active timer)**
+- Delete any task including completed ones **(disabled during active timer)**
 - Complete tasks to mark them as done
+- All task operations are user-specific and secure
 
 ### 6. **View Summary**
 - Click "Summary" in header
 - Select date to view statistics
-- See all time logs and task breakdown
+- See all tasks created on that date (even without time logs)
 - View Pending, In Progress, and Completed task counts
-- Select date to view statistics
-- See all time logs and task breakdown
+- Complete time log history with session details
 
 ## 🔒 Security Features
 
@@ -248,58 +335,9 @@ npm run build
 After deployment, you can provide test credentials in your README:
 
 ```
-Email: demo@example.com
-Password: demo123
+Email: test@gmail.com
+Password: test1234
 ```
-
-## 📝 Commit History & Suggested Commits
-
-This project follows conventional commit messages:
-- `feat:` - New features
-- `ui:` - UI changes
-- `fix:` - Bug fixes
-- `docs:` - Documentation
-- `refactor:` - Code refactoring
-
-### Suggested commits for current implementation:
-
-```bash
-# Initial setup
-git add .
-git commit -m "feat: initial project setup with SvelteKit and MongoDB"
-
-# Authentication
-git commit -m "feat: add user authentication with JWT and bcrypt"
-
-# Task Management
-git commit -m "feat: add task CRUD operations"
-git commit -m "feat: add task description field"
-git commit -m "ui: add sticky bottom input like chat apps"
-
-# Timer Features
-git commit -m "feat: implement timer start/stop functionality"
-git commit -m "feat: enable multiple concurrent timers per task"
-git commit -m "feat: persist timer state across page refreshes"
-git commit -m "feat: disable status update during active timer"
-
-# Time Logs
-git commit -m "feat: add time log sessions for each task"
-git commit -m "feat: display total time per task with active timer"
-git commit -m "ui: add expandable time logs view per task"
-
-# Task Management Updates
-git commit -m "fix: allow deletion of completed tasks"
-git commit -m "feat: set default task status to Pending"
-
-# Summary Page
-git commit -m "feat: add daily summary page with statistics"
-git commit -m "feat: display pending tasks in summary breakdown"
-
-# Documentation
-git commit -m "docs: update README with all features"
-```
-
-Each feature was committed separately for clear project history.
 
 ## 🤝 Contributing
 
