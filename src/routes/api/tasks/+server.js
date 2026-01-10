@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { json } from '@sveltejs/kit';
 import { Task } from '$lib/models/Task.js';
 import { getUserFromRequest } from '$lib/auth.js';

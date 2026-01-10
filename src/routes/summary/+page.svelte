@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 
 	let selectedDate = new Date().toISOString().split('T')[0];
+	/** @type {any} */
 	let summary = null;
 	let loading = false;
 
@@ -25,6 +26,9 @@
 		}
 	}
 
+	/**
+	 * @param {number} seconds
+	 */
 	function formatTime(seconds) {
 		const hours = Math.floor(seconds / 3600);
 		const minutes = Math.floor((seconds % 3600) / 60);
@@ -32,6 +36,9 @@
 		return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 	}
 
+	/**
+	 * @param {string} dateString
+	 */
 	function formatDateTime(dateString) {
 		const date = new Date(dateString);
 		return date.toLocaleString();
@@ -128,7 +135,7 @@
 							</thead>
 							<tbody>
 								{#each summary.timeLogs as log}
-									{@const task = summary.tasksWorkedOn.find((t) => t._id === log.taskId)}
+									{@const task = summary.tasksWorkedOn.find((/** @type {any} */ t) => t._id === log.taskId)}
 									<tr>
 										<td>{task ? task.title : 'Unknown Task'}</td>
 										<td>{formatDateTime(log.startTime)}</td>

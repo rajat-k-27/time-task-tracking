@@ -11,7 +11,7 @@ export class TimeLog {
 	 * @param {string} logData.userId
 	 * @param {string} logData.taskId
 	 * @param {Date} logData.startTime
-	 * @param {Date} [logData.endTime]
+	 * @param {Date | null} [logData.endTime]
 	 * @param {number} [logData.duration]
 	 * @returns {Promise<Object>}
 	 */
@@ -21,7 +21,7 @@ export class TimeLog {
 			userId: new ObjectId(userId),
 			taskId: new ObjectId(taskId),
 			startTime,
-			endTime,
+			endTime: /** @type {Date | null} */ (endTime),
 			duration,
 			createdAt: new Date()
 		});
@@ -44,7 +44,7 @@ export class TimeLog {
 	/**
 	 * Find all active timers for a user
 	 * @param {string} userId
-	 * @returns {Promise<Array>}
+	 * @returns {Promise<any[]>}
 	 */
 	static async findAllActiveTimers(userId) {
 		const db = await getDb();
@@ -91,7 +91,7 @@ export class TimeLog {
 	 * Get all time logs for a task
 	 * @param {string} taskId
 	 * @param {string} userId
-	 * @returns {Promise<Array>}
+	 * @returns {Promise<any[]>}
 	 */
 	static async findByTaskId(taskId, userId) {
 		const db = await getDb();
@@ -110,7 +110,7 @@ export class TimeLog {
 	 * @param {string} userId
 	 * @param {Date} startDate
 	 * @param {Date} endDate
-	 * @returns {Promise<Array>}
+	 * @returns {Promise<any[]>}
 	 */
 	static async findByDateRange(userId, startDate, endDate) {
 		const db = await getDb();

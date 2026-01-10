@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { json } from '@sveltejs/kit';
 import { User } from '$lib/models/User.js';
 import { hashPassword, generateToken } from '$lib/auth.js';

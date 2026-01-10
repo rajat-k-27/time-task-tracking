@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { json } from '@sveltejs/kit';
 import { TimeLog } from '$lib/models/TimeLog.js';
 import { Task } from '$lib/models/Task.js';

@@ -30,7 +30,7 @@ export class Task {
 	/**
 	 * Find all tasks for a user
 	 * @param {string} userId
-	 * @returns {Promise<Array>}
+	 * @returns {Promise<any[]>}
 	 */
 	static async findByUserId(userId) {
 		const db = await getDb();

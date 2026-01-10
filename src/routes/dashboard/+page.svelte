@@ -1,24 +1,35 @@
 <script>
 	import { onMount } from 'svelte';
 
+	/** @type {any[]} */
 	let tasks = [];
 	let newTaskTitle = '';
 	let newTaskDescription = '';
 	let loading = false;
 	let error = '';
+	/** @type {Record<string, any>} */
 	let activeTimers = {}; // Map of taskId -> timer info
+	/** @type {Record<string, string>} */
 	let taskTimerDisplays = {}; // Map of taskId -> display string
+	/** @type {Record<string, any[]>} */
 	let taskTimeLogs = {}; // Map of taskId -> array of time logs
+	/** @type {Record<string, number>} */
 	let taskTotalTimes = {}; // Map of taskId -> total time in seconds
+	/** @type {Record<string, boolean>} */
 	let expandedTasks = {}; // Map of taskId -> boolean for showing time logs
+	/** @type {Record<string, boolean>} */
+	let editingTasks = {}; // Map of taskId -> boolean for editing mode
+	/** @type {Record<string, any>} */
+	let editFormData = {}; // Map of taskId -> { title, description }
+	/** @type {number} */
 	let timerInterval;
 
 	// Reactive statement to ensure UI updates when activeTimers changes
 	$: activeTimerCount = Object.keys(activeTimers).length;
 
-	onMount(async () => {
-		await loadTasks();
-		await checkActiveTimers();
+onMount(() => {
+		loadTasks();
+		checkActiveTimers();
 
 		// Update timer displays every second
 		timerInterval = setInterval(() => {
@@ -48,6 +59,9 @@
 		}
 	}
 
+	/**
+	 * @param {any} taskId
+	 */
 	async function loadTaskTimeLogs(taskId) {
 		try {
 			const response = await fetch(`/api/timelogs/${taskId}`);
@@ -67,6 +81,7 @@
 			if (response.ok) {
 				const data = await response.json();
 				// Convert array to map by taskId
+				/** @type {Record<string, any>} */
 				const newActiveTimers = {};
 				if (data.activeTimers && data.activeTimers.length > 0) {
 					for (const timer of data.activeTimers) {
@@ -86,6 +101,7 @@
 	}
 
 	function updateAllTimerDisplays() {
+		/** @type {Record<string, string>} */
 		const newDisplays = {};
 		for (const [taskId, timer] of Object.entries(activeTimers)) {
 			newDisplays[taskId] = formatTimerDisplay(timer.startTime);
@@ -94,10 +110,13 @@
 		taskTimerDisplays = { ...newDisplays };
 	}
 
+	/**
+	 * @param {string | Date} startTime
+	 */
 	function formatTimerDisplay(startTime) {
 		const start = new Date(startTime);
 		const now = new Date();
-		const diff = Math.floor((now - start) / 1000);
+		const diff = Math.floor((now.getTime() - start.getTime()) / 1000);
 
 		const hours = Math.floor(diff / 3600);
 		const minutes = Math.floor((diff % 3600) / 60);
@@ -137,6 +156,9 @@
 		}
 	}
 
+	/**
+	 * @param {any} taskId
+	 */
 	async function startTimer(taskId) {
 		try {
 			const response = await fetch('/api/timer/start', {
@@ -157,6 +179,9 @@
 		}
 	}
 
+	/**
+	 * @param {any} taskId
+	 */
 	async function stopTimer(taskId) {
 		try {
 			const response = await fetch('/api/timer/stop', {
@@ -182,6 +207,10 @@
 		}
 	}
 
+	/**
+	 * @param {any} taskId
+	 * @param {string} newStatus
+	 */
 	async function updateTaskStatus(taskId, newStatus) {
 		try {
 			const response = await fetch(`/api/tasks/${taskId}`, {
@@ -198,6 +227,64 @@
 		}
 	}
 
+	/**
+	 * @param {any} task
+	 */
+	function startEditingTask(task) {
+		editingTasks[task._id.toString()] = true;
+		editFormData[task._id.toString()] = {
+			title: task.title,
+			description: task.description || ''
+		};
+		editingTasks = editingTasks; // trigger reactivity
+	}
+
+	/**
+	 * @param {any} taskId
+	 */
+	function cancelEditingTask(taskId) {
+		delete editingTasks[taskId.toString()];
+		delete editFormData[taskId.toString()];
+		editingTasks = editingTasks; // trigger reactivity
+	}
+
+	/**
+	 * @param {any} taskId
+	 */
+	async function saveTaskEdit(taskId) {
+		const data = editFormData[taskId.toString()];
+		if (!data || !data.title.trim()) {
+			alert('Task title cannot be empty');
+			return;
+		}
+
+		try {
+			const response = await fetch(`/api/tasks/${taskId}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					title: data.title,
+					description: data.description
+				})
+			});
+
+			if (response.ok) {
+				delete editingTasks[taskId.toString()];
+				delete editFormData[taskId.toString()];
+				editingTasks = editingTasks; // trigger reactivity
+				await loadTasks();
+			} else {
+				const errorData = await response.json();
+				alert(errorData.error || 'Failed to update task');
+			}
+		} catch (err) {
+			alert('Network error while updating task');
+		}
+	}
+
+	/**
+	 * @param {any} taskId
+	 */
 	async function deleteTask(taskId) {
 		if (!confirm('Are you sure you want to delete this task?')) return;
 
@@ -223,12 +310,18 @@
 		}
 	}
 
+	/**
+	 * @param {any} task
+	 */
 	function getTaskClass(task) {
 		if (task.status === 'Completed') return 'task-completed';
 		if (isTaskActive(task)) return 'task-active';
 		return '';
 	}
 
+	/**
+	 * @param {any} task
+	 */
 	function isTaskActive(task) {
 		return activeTimers[task._id.toString()] !== undefined;
 	}
@@ -237,6 +330,9 @@
 		return Object.keys(activeTimers).length;
 	}
 
+	/**
+	 * @param {number} seconds
+	 */
 	function formatTime(seconds) {
 		const hours = Math.floor(seconds / 3600);
 		const minutes = Math.floor((seconds % 3600) / 60);
@@ -244,23 +340,32 @@
 		return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 	}
 
+	/**
+	 * @param {string} dateString
+	 */
 	function formatDateTime(dateString) {
 		const date = new Date(dateString);
 		return date.toLocaleString();
 	}
 
+	/**
+	 * @param {string} taskId
+	 */
 	function toggleTaskLogs(taskId) {
 		expandedTasks[taskId] = !expandedTasks[taskId];
 		expandedTasks = expandedTasks; // trigger reactivity
 	}
 
+	/**
+	 * @param {string} taskId
+	 */
 	function getTotalTimeWithActive(taskId) {
 		let total = taskTotalTimes[taskId] || 0;
 		// Add active timer time if running
 		if (activeTimers[taskId]) {
 			const start = new Date(activeTimers[taskId].startTime);
 			const now = new Date();
-			const activeSeconds = Math.floor((now - start) / 1000);
+			const activeSeconds = Math.floor((now.getTime() - start.getTime()) / 1000);
 			total += activeSeconds;
 		}
 		return total;
@@ -293,20 +398,47 @@
 				{:else}
 					{#each tasks as task (task._id)}
 						<div class="task-card {getTaskClass(task)}">
-							<div class="task-header">
-								<h3 class="task-title">{task.title}</h3>
-								<div class="task-header-right">
-									{#if isTaskActive(task)}
-										<span class="task-timer">{taskTimerDisplays[task._id.toString()] || '00:00:00'}</span>
-									{/if}
-									<span class="task-status status-{task.status.toLowerCase().replace(' ', '-')}">
-										{task.status}
-									</span>
+							{#if editingTasks[task._id.toString()]}
+								<!-- Edit Mode -->
+								<div class="task-edit-form">
+									<input
+										type="text"
+										bind:value={editFormData[task._id.toString()].title}
+										placeholder="Task title"
+										class="edit-input edit-title"
+									/>
+									<textarea
+										bind:value={editFormData[task._id.toString()].description}
+										placeholder="Description (optional)"
+										class="edit-input edit-description"
+										rows="3"
+									></textarea>
+									<div class="edit-actions">
+										<button on:click={() => saveTaskEdit(task._id)} class="btn-action btn-save">
+											Save
+										</button>
+										<button on:click={() => cancelEditingTask(task._id)} class="btn-action btn-cancel">
+											Cancel
+										</button>
+									</div>
 								</div>
-							</div>
+							{:else}
+								<!-- View Mode -->
+								<div class="task-header">
+									<h3 class="task-title">{task.title}</h3>
+									<div class="task-header-right">
+										{#if isTaskActive(task)}
+											<span class="task-timer">{taskTimerDisplays[task._id.toString()] || '00:00:00'}</span>
+										{/if}
+										<span class="task-status status-{task.status.toLowerCase().replace(' ', '-')}">
+											{task.status}
+										</span>
+									</div>
+								</div>
 
-							{#if task.description}
-								<p class="task-description">{task.description}</p>
+								{#if task.description}
+									<p class="task-description">{task.description}</p>
+								{/if}
 							{/if}
 
 							<div class="task-stats">
@@ -347,47 +479,61 @@
 								</div>
 							{/if}
 
-							<div class="task-actions">
-								{#if task.status !== 'Completed'}
-									{#if isTaskActive(task)}
-										<button on:click={() => stopTimer(task._id)} class="btn-action btn-stop-small">
-											⏹ Stop Timer
-										</button>
-									{:else}
-										<button on:click={() => startTimer(task._id)} class="btn-action btn-start">
-											▶ Start Timer
-										</button>
-									{/if}
+							{#if !editingTasks[task._id.toString()]}
+								<div class="task-actions">
+									{#if task.status !== 'Completed'}
+										{#if isTaskActive(task)}
+											<button on:click={() => stopTimer(task._id)} class="btn-action btn-stop-small">
+												⏹ Stop Timer
+											</button>
+										{:else}
+											<button on:click={() => startTimer(task._id)} class="btn-action btn-start">
+												▶ Start Timer
+											</button>
+										{/if}
 
-									<select
-										value={task.status}
-										on:change={(e) => updateTaskStatus(task._id, e.target.value)}
-										class="status-select"
-										disabled={isTaskActive(task)}
-										title={isTaskActive(task) ? 'Stop timer to change status' : ''}
-									>
-										<option value="Pending">Pending</option>
-										<option value="In Progress">In Progress</option>
-										<option value="Completed">Completed</option>
-									</select>
+										<select
+											value={task.status}
+											on:change={(e) => {
+												const target = /** @type {HTMLSelectElement} */ (e.target);
+												updateTaskStatus(task._id, target.value);
+											}}
+											class="status-select"
+											disabled={isTaskActive(task)}
+											title={isTaskActive(task) ? 'Stop timer to change status' : ''}
+										>
+											<option value="Pending">Pending</option>
+											<option value="In Progress">In Progress</option>
+											<option value="Completed">Completed</option>
+										</select>
 
-									<button 
-										on:click={() => deleteTask(task._id)} 
-										class="btn-action btn-delete"
-										disabled={isTaskActive(task)}
-										title={isTaskActive(task) ? 'Stop timer to delete task' : ''}
-									>
-										Delete
-									</button>
-								{:else}
-									<div class="task-actions">
-										<span class="completed-label">✓ Task Completed</span>
-										<button on:click={() => deleteTask(task._id)} class="btn-action btn-delete">
+										<button 
+											on:click={() => startEditingTask(task)} 
+											class="btn-action btn-edit"
+											disabled={isTaskActive(task)}
+											title={isTaskActive(task) ? 'Stop timer to edit task' : ''}
+										>
+											✏️ Edit
+										</button>
+
+										<button 
+											on:click={() => deleteTask(task._id)} 
+											class="btn-action btn-delete"
+											disabled={isTaskActive(task)}
+											title={isTaskActive(task) ? 'Stop timer to delete task' : ''}
+										>
 											Delete
 										</button>
-									</div>
-								{/if}
-							</div>
+									{:else}
+										<div class="task-actions">
+											<span class="completed-label">✓ Task Completed</span>
+											<button on:click={() => deleteTask(task._id)} class="btn-action btn-delete">
+												Delete
+											</button>
+										</div>
+									{/if}
+								</div>
+							{/if}
 						</div>
 					{/each}
 				{/if}
@@ -783,6 +929,62 @@
 	.task-input:focus {
 		outline: none;
 		border-color: #667eea;
+	}
+
+	.btn-edit {
+		background: #667eea;
+		color: white;
+	}
+
+	.btn-edit:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+
+	.btn-save {
+		background: #48bb78;
+		color: white;
+	}
+
+	.btn-cancel {
+		background: #cbd5e0;
+		color: #2d3748;
+	}
+
+	.task-edit-form {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.edit-input {
+		width: 100%;
+		padding: 0.75rem;
+		border: 2px solid #e2e8f0;
+		border-radius: 6px;
+		font-size: 0.95rem;
+		font-family: inherit;
+		transition: border-color 0.2s;
+	}
+
+	.edit-input:focus {
+		outline: none;
+		border-color: #667eea;
+	}
+
+	.edit-title {
+		font-size: 1rem;
+		font-weight: 600;
+	}
+
+	.edit-description {
+		resize: vertical;
+		min-height: 60px;
+	}
+
+	.edit-actions {
+		display: flex;
+		gap: 0.5rem;
 	}
 
 	.task-description-input {
